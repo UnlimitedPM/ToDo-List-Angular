@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-// On importe 'onSnapshot' qui est la méthode native de bas niveau
 import { Firestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+// Imports pour l'Auth
+import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user } from '@angular/fire/auth';
+import { Observable, switchMap, of } from 'rxjs';
 
 export interface Todo {
   id: string;
@@ -14,49 +15,71 @@ export interface Todo {
 })
 export class TodoService {
   private firestore = inject(Firestore);
-  private todoCollection = collection(this.firestore, 'todos'); 
+  private auth = inject(Auth);
 
-  // 1. GET (Version Manuelle / Native)
-  // On construit notre propre Observable pour contourner le bug de type
+  // Observable qui contient l'utilisateur connecté (ou null s'il n'y a personne)
+  user$ = user(this.auth);
+
+  // 1. LOGIN (Connexion avec Google)
+  login() {
+    return signInWithPopup(this.auth, new GoogleAuthProvider());
+  }
+
+  // 2. LOGOUT
+  logout() {
+    return signOut(this.auth);
+  }
+
+  // 3. GET (Intelligent)
+  // Cette fonction attend automatiquement qu'on soit connecté pour charger la bonne liste
   getTodos(): Observable<Todo[]> {
-    return new Observable((observer) => {
-      // onSnapshot écoute la base en temps réel
-      const unsubscribe = onSnapshot(this.todoCollection, (snapshot) => {
-        // On transforme les résultats manuellement
-        const resultats = snapshot.docs.map(doc => {
-          return {
-            id: doc.id,         // On récupère l'ID
-            ...doc.data()       // On récupère le reste (nom, estTerminee)
-          } as Todo;
+    return this.user$.pipe(
+      switchMap(currentUser => {
+        // Si personne n'est connecté, on renvoie une liste vide
+        if (!currentUser) {
+          return of([]); 
+        }
+
+        // Sinon, on vise la collection PRIVÉE de l'utilisateur : users/SON_ID/todos
+        const userTodoCollection = collection(this.firestore, 'users', currentUser.uid, 'todos');
+
+        // Et on lance l'écoute (le code que tu avais déjà)
+        return new Observable<Todo[]>((observer) => {
+          const unsubscribe = onSnapshot(userTodoCollection, (snapshot) => {
+            const resultats = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            } as Todo));
+            observer.next(resultats);
+          }, error => observer.error(error));
+          return () => unsubscribe();
         });
-        
-        // On envoie les données à Angular
-        observer.next(resultats);
-      }, (error) => {
-        // En cas d'erreur, on prévient Angular
-        observer.error(error);
-      });
-
-      // Fonction de nettoyage quand on quitte la page
-      return () => unsubscribe();
-    });
+      })
+    );
   }
 
-  // 2. ADD (Pas de changement)
+  // Pour Ajouter/Supprimer/Modifier, on a besoin de l'ID de l'utilisateur
+  // Donc on crée une petite fonction privée pour récupérer l'ID actuel
+  private get userId() {
+    return this.auth.currentUser?.uid;
+  }
+
   addDoc(nom: string) {
-    const nouvelleTache = { nom: nom, estTerminee: false };
-    return addDoc(this.todoCollection, nouvelleTache);
+    if (!this.userId) return; // Sécurité
+    // On écrit dans users/SON_ID/todos
+    const userTodoCollection = collection(this.firestore, 'users', this.userId, 'todos');
+    return addDoc(userTodoCollection, { nom, estTerminee: false });
   }
 
-  // 3. DELETE (Pas de changement)
   deleteTodo(id: string) {
-    const docRef = doc(this.firestore, 'todos/' + id);
+    if (!this.userId) return;
+    const docRef = doc(this.firestore, 'users', this.userId, 'todos', id);
     return deleteDoc(docRef);
   }
 
-  // 4. UPDATE (Pas de changement)
   updateTodo(todo: Todo) {
-    const docRef = doc(this.firestore, 'todos/' + todo.id);
+    if (!this.userId) return;
+    const docRef = doc(this.firestore, 'users', this.userId, 'todos', todo.id);
     return updateDoc(docRef, { estTerminee: !todo.estTerminee });
   }
 }

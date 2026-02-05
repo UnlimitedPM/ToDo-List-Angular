@@ -1,33 +1,37 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+// On importe AsyncPipe pour gérer l'utilisateur dans le HTML facilement
+import { AsyncPipe } from '@angular/common'; 
 import { TacheComponent } from './tache/tache';
 import { TodoService, Todo } from './todo';
 
 @Component({
   selector: 'app-root',
-  imports: [TacheComponent],
+  imports: [AsyncPipe, TacheComponent], // Ajoute AsyncPipe ici
   templateUrl: './app.html',
 })
 export class App implements OnInit {
-  title = signal('Ma To-Do List Firebase 🔥');
+  // On rend le service public pour y accéder depuis le HTML (pour le login/logout)
+  todoService = inject(TodoService);
   
-  private todoService = inject(TodoService);
+  // On récupère l'observable de l'utilisateur directement
+  user$ = this.todoService.user$;
+
   taches = signal<Todo[]>([]);
 
   ngOnInit() {
+    // Le getTodos est maintenant intelligent, il changera tout seul quand on se connecte
     this.todoService.getTodos().subscribe(data => {
-      // AJOUTE CE LOG
-      console.log('Données reçues de Firebase :', data); 
-      
       this.taches.set(data);
     });
   }
 
+  login() { this.todoService.login(); }
+  logout() { this.todoService.logout(); }
+  
+  // Le reste ne change pas (ajoute, supprime, etc.)
   ajouterTache(nom: string) {
     if (!nom.trim()) return;
-    // Note : la méthode s'appelle addDoc ou addTodo selon ce que tu as mis dans le service
-    this.todoService.addDoc(nom); 
-    // Pas besoin de subscribe ni de update local, la magie du ngOnInit fait le travail !
+    this.todoService.addDoc(nom);
   }
 
   supprimerTache(tache: Todo) {

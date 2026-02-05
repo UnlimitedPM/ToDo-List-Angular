@@ -1,19 +1,21 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-
-// 1. IMPORTS FIREBASE
+import { provideHttpClient } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
-import { environment } from '../environments/environment'; // Import de ton fichier créé
+// 1. IMPORT AUTH
+import { provideAuth, getAuth } from '@angular/fire/auth'; 
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    
-    // 2. INITIALISATION FIREBASE
+    provideHttpClient(),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
+    // 2. ACTIVER AUTH ICI
+    provideAuth(() => getAuth()), 
     provideFirestore(() => getFirestore())
   ]
 };
