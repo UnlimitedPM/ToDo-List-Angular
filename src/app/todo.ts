@@ -8,6 +8,7 @@ export interface Todo {
   id: string;
   nom: string;
   estTerminee: boolean;
+  date?: number;
 }
 
 @Injectable({
@@ -65,10 +66,14 @@ export class TodoService {
   }
 
   addDoc(nom: string) {
-    if (!this.userId) return; // Sécurité
-    // On écrit dans users/SON_ID/todos
+    if (!this.userId) return;
     const userTodoCollection = collection(this.firestore, 'users', this.userId, 'todos');
-    return addDoc(userTodoCollection, { nom, estTerminee: false });
+    
+    return addDoc(userTodoCollection, { 
+      nom, 
+      estTerminee: false,
+      date: Date.now() // <--- On ajoute le timestamp actuel
+    });
   }
 
   deleteTodo(id: string) {
