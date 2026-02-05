@@ -1,0 +1,27 @@
+/* Le style de base de la carte */
+.tache-card {
+  display: flex;
+  justify-content: space-between; /* Ecarte le texte du bouton */
+  align-items: center;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 4px;
+  background-color: white;
+  transition: all 0.3s;
+}
+
+/* Le style quand c'est terminé */
+.tache-terminee {
+  background-color: #e0e0e0; /* Gris clair */
+  text-decoration: line-through; /* Texte barré */
+  color: #888;
+}
+
+/* Juste pour faire joli sur le bouton */
+button {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-weight: bold;
+}

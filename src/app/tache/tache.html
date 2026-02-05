@@ -1,0 +1,26 @@
+<div 
+  class="flex items-center p-3 rounded-lg border border-gray-200 hover:shadow-md transition duration-200 group"
+  [class]="tache().estTerminee ? 'bg-gray-50' : 'bg-white'"
+>
+  <input 
+    type="checkbox" 
+    [checked]="tache().estTerminee"
+    (change)="onToggle()"
+    class="w-5 h-5 text-blue-600 rounded cursor-pointer"
+  >
+
+  <span 
+    (click)="onToggle()"
+    class="flex-1 ml-3 cursor-pointer select-none font-medium"
+    [class]="tache().estTerminee ? 'text-gray-400 line-through' : 'text-gray-700'"
+  >
+    {{ tache().nom }}
+  </span>
+  
+  <button 
+    (click)="onSupprimer()" 
+    class="text-red-400 hover:text-red-600 p-2 opacity-0 group-hover:opacity-100 transition"
+  >
+    X
+  </button>
+</div>
