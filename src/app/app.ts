@@ -8,44 +8,53 @@ import { TodoService, Todo } from './todo';
   imports: [AsyncPipe, TacheComponent], // Ajout de DatePipe
   templateUrl: './app.html',
 })
+
+
 export class App implements OnInit {
   todoService = inject(TodoService);
   user$ = this.todoService.user$;
-
-  // 1. SIGNAL POUR LES DONNÉES BRUTES
+  
   tachesBrutes = signal<Todo[]>([]);
+  chargement = signal(true);
 
-  // 2. SIGNAL POUR L'ÉTAT DE CHARGEMENT
-  chargement = signal(true); // Vrai par défaut
+  // 1. ON INITIALISE EN REGARDANT DANS LA MÉMOIRE DU NAVIGATEUR
+  // Si 'darkMode' existe et vaut 'true', on met true. Sinon false.
+  darkMode = signal(localStorage.getItem('darkMode') === 'true');
 
-  // 3. SIGNAL POUR L'ORDRE DE TRI ('recent' ou 'ancien')
-  ordreTri = signal<'recent' | 'ancien'>('recent');
+  // Idem pour le tri (on force le type pour rassurer TypeScript)
+  ordreTri = signal((localStorage.getItem('ordreTri') as 'recent' | 'ancien') || 'recent');
 
-  // 4. SIGNAL POUR LE DARK MODE
-  darkMode = signal(false);
-
-  // 5. SIGNAL CALCULÉ (COMPUTED) : La liste triée
   taches = computed(() => {
-    // On prend la liste brute
-    const liste = this.tachesBrutes();
-    const ordre = this.ordreTri();
-
-    // On la trie (on crée une copie avec [...liste] pour ne pas toucher l'originale)
-    return [...liste].sort((a, b) => {
-      const dateA = a.date || 0; // Si pas de date, on met 0 (très vieux)
-      const dateB = b.date || 0;
-      return ordre === 'recent' ? dateB - dateA : dateA - dateB;
-    });
+     // ... (ton code de tri ne change pas) ...
+     const liste = this.tachesBrutes();
+     const ordre = this.ordreTri();
+     return [...liste].sort((a, b) => {
+       const dateA = a.date || 0;
+       const dateB = b.date || 0;
+       return ordre === 'recent' ? dateB - dateA : dateA - dateB;
+     });
   });
 
   constructor() {
-    // Un "effect" pour gérer le Dark Mode sur le <body>
+    // 2. EFFET POUR LE DARK MODE
     effect(() => {
-      if (this.darkMode()) {
+      const isDark = this.darkMode();
+      
+      // A. On sauvegarde le choix pour la prochaine fois
+      localStorage.setItem('darkMode', String(isDark));
+
+      // B. On applique la classe CSS (pour Tailwind v4)
+      if (isDark) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
+    });
+
+    // 3. EFFET POUR LE TRI
+    effect(() => {
+      // On sauvegarde juste la préférence
+      localStorage.setItem('ordreTri', this.ordreTri());
     });
   }
 
