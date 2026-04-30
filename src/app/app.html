@@ -5,7 +5,7 @@
       <div class="flex flex-col">
         <div class="flex items-center gap-2">
           <select [ngModel]="listeActiveId()" (ngModelChange)="changerListe($event)"
-                  class="text-2xl font-bold bg-transparent text-gray-800 dark:text-white focus:outline-none cursor-pointer border-none p-0 max-w-[200px] truncate">
+                  class="text-2xl font-bold bg-transparent text-gray-800 dark:text-white focus:outline-none cursor-pointer border-none p-0 max-w-50 truncate">
             @for (liste of listes(); track liste.id) {
               <option [value]="liste.id" class="dark:bg-slate-800">{{ liste.nom }}</option>
             }
@@ -36,11 +36,11 @@
       <div class="flex flex-col gap-3 mb-6">
         <div class="flex gap-2">
           <textarea #champSaisie placeholder="Nouvelle tâche..." rows="1"
-                    class="flex-1 bg-white border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2 resize-none overflow-hidden min-h-[42px] focus:ring-2 focus:ring-blue-500 outline-none"
+                    class="flex-1 bg-white border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2 resize-none overflow-hidden min-h-10.5 focus:ring-2 focus:ring-blue-500 outline-none"
                     (input)="champSaisie.style.height = 'auto'; champSaisie.style.height = champSaisie.scrollHeight + 'px'"
                     (keydown.enter)="gererEntree($event, champSaisie)"></textarea>
           <button (click)="ajouterTache(champSaisie.value); champSaisie.value = ''; champSaisie.style.height = 'auto'"
-                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg self-start h-[42px] transition">+</button>
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg self-start h-10.5 transition">+</button>
         </div>
         <div class="flex justify-end">
            <button (click)="basculerTri()" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 flex items-center gap-1 transition">
