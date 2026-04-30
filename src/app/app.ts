@@ -42,30 +42,19 @@ export class App implements OnInit {
     return nomOk;
   });
 
-  // --- LOGIQUE DE TRI CORRIGÉE ---
   taches = computed(() => {
     const liste = this.tachesBrutes();
     const ordre = this.ordreTri();
     
     return [...liste].sort((a, b) => {
-      // 1. PREMIER NIVEAU : L'étoile (Priorité)
       const prioriteA = a.estPrioritaire ? 1 : 0;
       const prioriteB = b.estPrioritaire ? 1 : 0;
       
-      if (prioriteA !== prioriteB) {
-        // Les 1 (étoilés) remontent au dessus des 0 (non-étoilés)
-        return prioriteB - prioriteA;
-      }
+      if (prioriteA !== prioriteB) return prioriteB - prioriteA;
 
-      // 2. DEUXIÈME NIVEAU : La date (si les deux ont ou n'ont pas d'étoile)
       const dateA = a.date || 0;
       const dateB = b.date || 0;
-      
-      if (ordre === 'recent') {
-        return dateB - dateA; // Plus récent en haut
-      } else {
-        return dateA - dateB; // Plus ancien en haut
-      }
+      return ordre === 'recent' ? dateB - dateA : dateA - dateB;
     });
   });
 
@@ -179,14 +168,5 @@ export class App implements OnInit {
     this.todoService.logout(); 
     this.tachesBrutes.set([]);
     this.listeActiveId.set(null);
-  }
-  
-  simulerTemps(indexJour: number) {
-    const cible = new Date();
-    const currentDay = cible.getDay();
-    const diff = (indexJour - currentDay + 7) % 7;
-    cible.setDate(cible.getDate() + (diff === 0 ? 7 : diff));
-    const liste = this.listeActive();
-    if (liste) this.todoService.verifierEtReset(liste, this.tachesBrutes(), cible);
   }
 }
