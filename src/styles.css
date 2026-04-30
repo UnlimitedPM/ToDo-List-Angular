@@ -1,4 +1,29 @@
 @import "tailwindcss";
 
+/* 1. On définit la couleur selon le thème */
+:root {
+  --couleur-barre: #bfdbfe; /* Bleu 200 par défaut (Clair) */
+}
+
+html.dark {
+  --couleur-barre: #334155; /* Slate 700 (Sombre) */
+}
+
+/* 2. Pour Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--couleur-barre) transparent;
+}
+
+/* 3. Pour Chrome, Edge et Safari (Indispensable pour ces navigateurs) */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--couleur-barre);
+  border-radius: 10px;
+}
+
 /* 👇 AJOUTE CETTE LIGNE MAGIQUE */
 @variant dark (&:where(.dark, .dark *));
