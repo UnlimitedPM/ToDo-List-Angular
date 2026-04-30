@@ -1,31 +1,23 @@
 import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
-import { AsyncPipe, DatePipe } from '@angular/common'; // DatePipe pour afficher la date joliment
+import { AsyncPipe } from '@angular/common'; 
 import { TacheComponent } from './tache/tache';
 import { TodoService, Todo } from './todo';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, TacheComponent], // Ajout de DatePipe
+  imports: [AsyncPipe, TacheComponent],
   templateUrl: './app.html',
 })
-
-
 export class App implements OnInit {
   todoService = inject(TodoService);
   user$ = this.todoService.user$;
   
   tachesBrutes = signal<Todo[]>([]);
   chargement = signal(true);
-
-  // 1. ON INITIALISE EN REGARDANT DANS LA MÉMOIRE DU NAVIGATEUR
-  // Si 'darkMode' existe et vaut 'true', on met true. Sinon false.
   darkMode = signal(localStorage.getItem('darkMode') === 'true');
-
-  // Idem pour le tri (on force le type pour rassurer TypeScript)
   ordreTri = signal((localStorage.getItem('ordreTri') as 'recent' | 'ancien') || 'recent');
 
   taches = computed(() => {
-     // ... (ton code de tri ne change pas) ...
      const liste = this.tachesBrutes();
      const ordre = this.ordreTri();
      return [...liste].sort((a, b) => {
@@ -35,15 +27,20 @@ export class App implements OnInit {
      });
   });
 
+  // 👇 LA NOUVELLE FONCTION BIEN PLACÉE ICI
+  gererEntree(event: any, textarea: HTMLTextAreaElement) {
+    if (!event.shiftKey) {
+      event.preventDefault(); 
+      this.ajouterTache(textarea.value);
+      textarea.value = '';
+      textarea.style.height = 'auto';
+    }
+  }
+
   constructor() {
-    // 2. EFFET POUR LE DARK MODE
     effect(() => {
       const isDark = this.darkMode();
-      
-      // A. On sauvegarde le choix pour la prochaine fois
       localStorage.setItem('darkMode', String(isDark));
-
-      // B. On applique la classe CSS (pour Tailwind v4)
       if (isDark) {
         document.documentElement.classList.add('dark');
       } else {
@@ -51,9 +48,7 @@ export class App implements OnInit {
       }
     });
 
-    // 3. EFFET POUR LE TRI
     effect(() => {
-      // On sauvegarde juste la préférence
       localStorage.setItem('ordreTri', this.ordreTri());
     });
   }
@@ -61,23 +56,16 @@ export class App implements OnInit {
   ngOnInit() {
     this.todoService.getTodos().subscribe(data => {
       this.tachesBrutes.set(data);
-      this.chargement.set(false); // On arrête le chargement quand les données arrivent
+      this.chargement.set(false);
     });
   }
 
-  // Fonctions d'actions
-  basculerTri() {
-    this.ordreTri.update(o => o === 'recent' ? 'ancien' : 'recent');
-  }
-
-  basculerDarkMode() {
-    this.darkMode.update(v => !v);
-  }
-
+  basculerTri() { this.ordreTri.update(o => o === 'recent' ? 'ancien' : 'recent'); }
+  basculerDarkMode() { this.darkMode.update(v => !v); }
   login() { this.todoService.login(); }
   logout() { 
     this.todoService.logout(); 
-    this.tachesBrutes.set([]); // On vide la liste locale en sortant
+    this.tachesBrutes.set([]); 
   }
   
   ajouterTache(nom: string) {
@@ -86,5 +74,14 @@ export class App implements OnInit {
   }
 
   supprimerTache(tache: Todo) { this.todoService.deleteTodo(tache.id); }
-  basculerTache(todo: Todo) { this.todoService.updateTodo(todo); }
+
+  // Ajoute cette fonction dans ta classe App
+  modifierTache(tache: Todo, nouveauNom: string) {
+  this.todoService.updateTodo(tache.id, { nom: nouveauNom });
+  }
+
+  // Et modifie basculerTache pour utiliser la nouvelle signature du service
+  basculerTache(todo: Todo) { 
+    this.todoService.updateTodo(todo.id, { estTerminee: !todo.estTerminee }); 
+  }
 }

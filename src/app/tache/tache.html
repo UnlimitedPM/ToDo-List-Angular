@@ -4,7 +4,7 @@
     ? 'bg-slate-300 border-slate-400 dark:bg-slate-900 dark:border-slate-700' 
     : 'bg-blue-50 border-blue-200 dark:bg-slate-700 dark:border-slate-600'"
 >
-  
+  <!-- Checkbox de complétion -->
   <input 
     type="checkbox" 
     [checked]="tache().estTerminee"
@@ -12,15 +12,23 @@
     class="w-5 h-5 text-blue-600 rounded cursor-pointer"
   >
 
-  <div class="flex-1 ml-3 flex flex-col cursor-pointer select-none" (click)="onToggle()">
-    <span 
-      class="font-medium"
-      [class]="tache().estTerminee 
-        ? 'text-slate-500 line-through dark:text-slate-500' 
-        : 'text-blue-900 dark:text-slate-200'"
-    >
-      {{ tache().nom }}
-    </span>
+  <!-- Zone de texte (Affichage ou Édition) -->
+  <div class="flex-1 ml-3 flex flex-col select-none">
+    @if (estEnEdition()) {
+      <!-- Dans la partie @if (estEnEdition()) de tache.html -->
+      <textarea #inputEdit
+                class="w-full bg-white border border-blue-300 rounded p-1 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden whitespace-pre-wrap"
+                (input)="inputEdit.style.height = 'auto'; inputEdit.style.height = inputEdit.scrollHeight + 'px'"
+                (keydown.enter)="gererTouche($event, inputEdit)"
+                (blur)="validerEdition(inputEdit.value)"
+                [value]="tache().nom"></textarea>
+    } @else {
+      <span class="font-medium whitespace-pre-wrap cursor-pointer" 
+            (dblclick)="activerEdition()"
+            [class]="tache().estTerminee ? 'text-slate-500 line-through dark:text-slate-500' : 'text-blue-900 dark:text-slate-200'">{{ tache().nom }}</span>
+    }
+    
+    <!-- Affichage de la date -->
     @if (tache().date) {
       <span class="text-xs text-gray-400 dark:text-slate-500">
         {{ tache().date | date:'dd MMM HH:mm' }}
@@ -28,10 +36,17 @@
     }
   </div>
   
-  <button 
-    (click)="onSupprimer()" 
-    class="text-red-400 hover:text-red-600 p-2 opacity-0 group-hover:opacity-100 transition"
-  >
-    X
-  </button>
+  <!-- Boutons d'actions -->
+  <div class="flex gap-1">
+    @if (!tache().estTerminee && !estEnEdition()) {
+       <button (click)="activerEdition()" 
+               class="text-blue-400 hover:text-blue-600 p-2 opacity-0 group-hover:opacity-100 transition">
+         ✎
+       </button>
+    }
+    <button (click)="onSupprimer()" 
+            class="text-red-400 hover:text-red-600 p-2 opacity-0 group-hover:opacity-100 transition">
+      X
+    </button>
+  </div>
 </div>

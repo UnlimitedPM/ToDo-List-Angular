@@ -22,13 +22,14 @@
       <div class="flex flex-col gap-3 mb-6">
         
         <div class="flex gap-2">
-          <input #champSaisie 
-                 type="text" 
-                 placeholder="Nouvelle tâche..."
-                 class="flex-1 border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 (keydown.enter)="ajouterTache(champSaisie.value); champSaisie.value = ''">
-          <button (click)="ajouterTache(champSaisie.value); champSaisie.value = ''"
-                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+          <textarea #champSaisie 
+                    placeholder="Nouvelle tâche..."
+                    rows="1"
+                    class="flex-1 bg-white border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden transition-all min-h-[42px]"
+                    (input)="champSaisie.style.height = 'auto'; champSaisie.style.height = champSaisie.scrollHeight + 'px'"
+                    (keydown.enter)="gererEntree($event, champSaisie)"></textarea>
+          <button (click)="ajouterTache(champSaisie.value); champSaisie.value = ''; champSaisie.style.height = 'auto'"
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg self-start h-[42px]">
             +
           </button>
         </div>
@@ -54,7 +55,8 @@
             <app-tache 
               [tache]="t" 
               (supprimer)="supprimerTache(t)" 
-              (toggle)="basculerTache(t)">
+              (toggle)="basculerTache(t)"
+              (modifier)="modifierTache(t, $event)"> <!-- Ajoute cette ligne -->
             </app-tache>
           } @empty {
             <p class="text-center text-gray-400 mt-10 italic">Aucune tâche pour le moment.</p>

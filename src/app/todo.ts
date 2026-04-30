@@ -82,9 +82,10 @@ export class TodoService {
     return deleteDoc(docRef);
   }
 
-  updateTodo(todo: Todo) {
+  // src/app/todo.ts (Ligne 89 environ)
+  updateTodo(id: string, modifications: Partial<Todo>) {
     if (!this.userId) return;
-    const docRef = doc(this.firestore, 'users', this.userId, 'todos', todo.id);
-    return updateDoc(docRef, { estTerminee: !todo.estTerminee });
+    const docRef = doc(this.firestore, 'users', this.userId, 'todos', id);
+    return updateDoc(docRef, modifications);
   }
 }
