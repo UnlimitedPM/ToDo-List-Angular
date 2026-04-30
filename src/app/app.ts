@@ -1,87 +1,192 @@
 import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
-import { AsyncPipe } from '@angular/common'; 
+import { AsyncPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms'; 
 import { TacheComponent } from './tache/tache';
-import { TodoService, Todo } from './todo';
+import { TodoService, Todo, ListeTodo, TypeReset } from './todo';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, TacheComponent],
+  imports: [AsyncPipe, TacheComponent, FormsModule],
   templateUrl: './app.html',
 })
 export class App implements OnInit {
   todoService = inject(TodoService);
   user$ = this.todoService.user$;
   
+  listes = signal<ListeTodo[]>([]);
+  listeActiveId = signal<string | null>(null);
+  listeActive = computed(() => this.listes().find(l => l.id === this.listeActiveId()) || null);
+
   tachesBrutes = signal<Todo[]>([]);
   chargement = signal(true);
   darkMode = signal(localStorage.getItem('darkMode') === 'true');
   ordreTri = signal((localStorage.getItem('ordreTri') as 'recent' | 'ancien') || 'recent');
 
-  taches = computed(() => {
-     const liste = this.tachesBrutes();
-     const ordre = this.ordreTri();
-     return [...liste].sort((a, b) => {
-       const dateA = a.date || 0;
-       const dateB = b.date || 0;
-       return ordre === 'recent' ? dateB - dateA : dateA - dateB;
-     });
+  showModal = signal(false);
+  modeEditionListe = signal(false);
+  nouveauNomListe = signal('');
+  nouveauTypeListe = signal<TypeReset>('standard');
+  joursSelectionnes = signal<number[]>([]);
+  
+  joursSemaine = [
+    { id: 1, nom: 'Lun' }, { id: 2, nom: 'Mar' }, { id: 3, nom: 'Mer' },
+    { id: 4, nom: 'Jeu' }, { id: 5, nom: 'Ven' }, { id: 6, nom: 'Sam' }, { id: 0, nom: 'Dim' }
+  ];
+
+  formulaireListeValide = computed(() => {
+    const nomOk = this.nouveauNomListe().trim().length > 0;
+    const type = this.nouveauTypeListe();
+    if (type === 'weekly' || type === 'custom') {
+      return nomOk && this.joursSelectionnes().length > 0;
+    }
+    return nomOk;
   });
 
-  // 👇 LA NOUVELLE FONCTION BIEN PLACÉE ICI
+  // --- LOGIQUE DE TRI CORRIGÉE ---
+  taches = computed(() => {
+    const liste = this.tachesBrutes();
+    const ordre = this.ordreTri();
+    
+    return [...liste].sort((a, b) => {
+      // 1. PREMIER NIVEAU : L'étoile (Priorité)
+      const prioriteA = a.estPrioritaire ? 1 : 0;
+      const prioriteB = b.estPrioritaire ? 1 : 0;
+      
+      if (prioriteA !== prioriteB) {
+        // Les 1 (étoilés) remontent au dessus des 0 (non-étoilés)
+        return prioriteB - prioriteA;
+      }
+
+      // 2. DEUXIÈME NIVEAU : La date (si les deux ont ou n'ont pas d'étoile)
+      const dateA = a.date || 0;
+      const dateB = b.date || 0;
+      
+      if (ordre === 'recent') {
+        return dateB - dateA; // Plus récent en haut
+      } else {
+        return dateA - dateB; // Plus ancien en haut
+      }
+    });
+  });
+
+  constructor() {
+    effect(() => {
+      const isDark = this.darkMode();
+      localStorage.setItem('darkMode', String(isDark));
+      document.documentElement.classList.toggle('dark', isDark);
+    });
+    effect(() => localStorage.setItem('ordreTri', this.ordreTri()));
+  }
+
+  ngOnInit() {
+    this.todoService.getListes().subscribe(listes => {
+      this.listes.set(listes);
+      if (!this.listeActiveId() && listes.length > 0) this.changerListe(listes[0].id);
+    });
+  }
+
+  changerListe(id: string) {
+    this.listeActiveId.set(id);
+    this.chargement.set(true);
+    this.todoService.getTodosParListe(id).subscribe(taches => {
+      this.tachesBrutes.set(taches);
+      this.chargement.set(false);
+      const liste = this.listeActive();
+      if (liste) this.todoService.verifierEtReset(liste, taches);
+    });
+  }
+
+  ouvrirModalNouvelleListe() {
+    this.modeEditionListe.set(false);
+    this.nouveauNomListe.set('');
+    this.nouveauTypeListe.set('standard');
+    this.joursSelectionnes.set([]);
+    this.showModal.set(true);
+  }
+
+  ouvrirModalEditionListe() {
+    const liste = this.listeActive();
+    if (!liste) return;
+    this.modeEditionListe.set(true);
+    this.nouveauNomListe.set(liste.nom);
+    this.nouveauTypeListe.set(liste.type);
+    this.joursSelectionnes.set(liste.joursReset || []);
+    this.showModal.set(true);
+  }
+
+  async validerActionListe() {
+    if (!this.formulaireListeValide()) return;
+    if (this.modeEditionListe()) {
+      const liste = this.listeActive();
+      if (liste) {
+        await this.todoService.updateListe(liste.id, {
+          nom: this.nouveauNomListe(),
+          joursReset: this.joursSelectionnes()
+        });
+      }
+    } else {
+      const nouvelOrdre = this.listes().length + 1;
+      const docRef = await this.todoService.addListe(this.nouveauNomListe(), this.nouveauTypeListe(), nouvelOrdre, this.joursSelectionnes());
+      if (docRef) this.changerListe(docRef.id);
+    }
+    this.showModal.set(false);
+  }
+
+  toggleJour(id: number) {
+    if (this.nouveauTypeListe() === 'weekly') {
+      this.joursSelectionnes.set([id]);
+    } else {
+      const actuels = this.joursSelectionnes();
+      this.joursSelectionnes.set(actuels.includes(id) ? actuels.filter(j => j !== id) : [...actuels, id]);
+    }
+  }
+
+  async supprimerListeActive() {
+    const liste = this.listeActive();
+    if (liste && !liste.estParDefaut && confirm(`Supprimer "${liste.nom}" ?`)) {
+      await this.todoService.deleteListe(liste.id);
+      const principale = this.listes().find(l => l.estParDefaut && l.ordre === 1);
+      if (principale) this.changerListe(principale.id);
+    }
+  }
+
   gererEntree(event: any, textarea: HTMLTextAreaElement) {
     if (!event.shiftKey) {
-      event.preventDefault(); 
+      event.preventDefault();
       this.ajouterTache(textarea.value);
       textarea.value = '';
       textarea.style.height = 'auto';
     }
   }
 
-  constructor() {
-    effect(() => {
-      const isDark = this.darkMode();
-      localStorage.setItem('darkMode', String(isDark));
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    });
-
-    effect(() => {
-      localStorage.setItem('ordreTri', this.ordreTri());
-    });
+  ajouterTache(nom: string) {
+    const lId = this.listeActiveId();
+    if (nom.trim() && lId) this.todoService.addDoc(nom, lId);
   }
 
-  ngOnInit() {
-    this.todoService.getTodos().subscribe(data => {
-      this.tachesBrutes.set(data);
-      this.chargement.set(false);
-    });
+  modifierTache(tache: Todo, nouveauNom: string) { this.todoService.updateTodo(tache.id, { nom: nouveauNom }); }
+  
+  basculerPriorite(tache: Todo) {
+    this.todoService.updateTodo(tache.id, { estPrioritaire: !tache.estPrioritaire });
   }
 
+  basculerTache(todo: Todo) { this.todoService.updateTodo(todo.id, { estTerminee: !todo.estTerminee }); }
+  supprimerTache(tache: Todo) { this.todoService.deleteTodo(tache.id); }
   basculerTri() { this.ordreTri.update(o => o === 'recent' ? 'ancien' : 'recent'); }
   basculerDarkMode() { this.darkMode.update(v => !v); }
   login() { this.todoService.login(); }
   logout() { 
     this.todoService.logout(); 
-    this.tachesBrutes.set([]); 
+    this.tachesBrutes.set([]);
+    this.listeActiveId.set(null);
   }
   
-  ajouterTache(nom: string) {
-    if (!nom.trim()) return;
-    this.todoService.addDoc(nom);
-  }
-
-  supprimerTache(tache: Todo) { this.todoService.deleteTodo(tache.id); }
-
-  // Ajoute cette fonction dans ta classe App
-  modifierTache(tache: Todo, nouveauNom: string) {
-  this.todoService.updateTodo(tache.id, { nom: nouveauNom });
-  }
-
-  // Et modifie basculerTache pour utiliser la nouvelle signature du service
-  basculerTache(todo: Todo) { 
-    this.todoService.updateTodo(todo.id, { estTerminee: !todo.estTerminee }); 
+  simulerTemps(indexJour: number) {
+    const cible = new Date();
+    const currentDay = cible.getDay();
+    const diff = (indexJour - currentDay + 7) % 7;
+    cible.setDate(cible.getDate() + (diff === 0 ? 7 : diff));
+    const liste = this.listeActive();
+    if (liste) this.todoService.verifierEtReset(liste, this.tachesBrutes(), cible);
   }
 }

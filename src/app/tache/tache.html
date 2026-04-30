@@ -1,52 +1,43 @@
-<div 
-  class="flex items-center p-3 rounded-lg border hover:shadow-md transition duration-200 group"
-  [class]="tache().estTerminee 
-    ? 'bg-slate-300 border-slate-400 dark:bg-slate-900 dark:border-slate-700' 
-    : 'bg-blue-50 border-blue-200 dark:bg-slate-700 dark:border-slate-600'"
->
-  <!-- Checkbox de complétion -->
-  <input 
-    type="checkbox" 
-    [checked]="tache().estTerminee"
-    (change)="onToggle()"
-    class="w-5 h-5 text-blue-600 rounded cursor-pointer"
-  >
+<div class="flex items-center p-3 rounded-lg border hover:shadow-md transition duration-200 group"
+     [class]="tache().estTerminee 
+       ? 'bg-slate-300 border-slate-400 dark:bg-slate-900 dark:border-slate-700' 
+       : 'bg-blue-50 border-blue-200 dark:bg-slate-700 dark:border-slate-600'">
 
-  <!-- Zone de texte (Affichage ou Édition) -->
-  <div class="flex-1 ml-3 flex flex-col select-none">
+  <!-- COLONNE ÉTOILE + CHECKBOX -->
+  <div class="flex flex-col items-center gap-1 mr-2">
+    <button (click)="onPriorite()" 
+            class="text-xl leading-none transition-transform hover:scale-110 active:scale-95"
+            [class]="tache().estPrioritaire ? 'text-yellow-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400'">
+      ★
+    </button>
+    
+    <input type="checkbox" 
+           [checked]="tache().estTerminee"
+           (change)="onToggle()"
+           class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+  </div>
+
+  <div class="flex-1 flex flex-col select-none">
     @if (estEnEdition()) {
-      <!-- Dans la partie @if (estEnEdition()) de tache.html -->
-      <textarea #inputEdit
-                class="w-full bg-white border border-blue-300 rounded p-1 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden whitespace-pre-wrap"
+      <textarea #inputEdit class="w-full bg-white border border-blue-300 rounded p-1 focus:ring-1 focus:ring-blue-500 resize-none overflow-hidden text-black"
                 (input)="inputEdit.style.height = 'auto'; inputEdit.style.height = inputEdit.scrollHeight + 'px'"
                 (keydown.enter)="gererTouche($event, inputEdit)"
                 (blur)="validerEdition(inputEdit.value)"
                 [value]="tache().nom"></textarea>
     } @else {
       <span class="font-medium whitespace-pre-wrap cursor-pointer" 
-            (dblclick)="activerEdition()"
-            [class]="tache().estTerminee ? 'text-slate-500 line-through dark:text-slate-500' : 'text-blue-900 dark:text-slate-200'">{{ tache().nom }}</span>
+            (click)="gererClick()" (dblclick)="gererDblClick()"
+            [class]="tache().estTerminee ? 'text-slate-500 line-through' : 'text-blue-900 dark:text-slate-200'">{{ tache().nom }}</span>
     }
-    
-    <!-- Affichage de la date -->
     @if (tache().date) {
-      <span class="text-xs text-gray-400 dark:text-slate-500">
-        {{ tache().date | date:'dd MMM HH:mm' }}
-      </span>
+      <span class="text-[10px] text-gray-400">{{ tache().date | date:'dd MMM HH:mm' }}</span>
     }
   </div>
   
-  <!-- Boutons d'actions -->
   <div class="flex gap-1">
     @if (!tache().estTerminee && !estEnEdition()) {
-       <button (click)="activerEdition()" 
-               class="text-blue-400 hover:text-blue-600 p-2 opacity-0 group-hover:opacity-100 transition">
-         ✎
-       </button>
+       <button (click)="activerEdition()" class="text-blue-400 hover:text-blue-600 p-2 md:opacity-0 md:group-hover:opacity-100 transition">✎</button>
     }
-    <button (click)="onSupprimer()" 
-            class="text-red-400 hover:text-red-600 p-2 opacity-0 group-hover:opacity-100 transition">
-      X
-    </button>
+    <button (click)="onSupprimer()" class="text-red-400 hover:text-red-600 p-2 md:opacity-0 md:group-hover:opacity-100 transition">X</button>
   </div>
 </div>

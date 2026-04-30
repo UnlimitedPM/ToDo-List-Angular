@@ -1,78 +1,127 @@
 <div class="min-h-screen flex items-center justify-center py-10 px-4">
-
-  <div class="bg-[#f6faff] dark:bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-lg transition-colors duration-300">
+  <div class="bg-[#f6faff]/90 backdrop-blur-sm dark:bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-lg transition-colors duration-300">
     
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Ma To-Do</h1>
-      
+      <div class="flex flex-col">
+        <div class="flex items-center gap-2">
+          <select [ngModel]="listeActiveId()" (ngModelChange)="changerListe($event)"
+                  class="text-2xl font-bold bg-transparent text-gray-800 dark:text-white focus:outline-none cursor-pointer border-none p-0 max-w-[200px] truncate">
+            @for (liste of listes(); track liste.id) {
+              <option [value]="liste.id" class="dark:bg-slate-800">{{ liste.nom }}</option>
+            }
+          </select>
+          <button (click)="ouvrirModalEditionListe()" class="text-blue-400 hover:text-blue-600 p-1">✎</button>
+        </div>
+        <span class="text-xs font-semibold text-blue-400 uppercase tracking-wider">Reset : {{ listeActive()?.type }}</span>
+      </div>
       <div class="flex items-center gap-3">
-        <button (click)="basculerDarkMode()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 transition">
+        <button (click)="basculerDarkMode()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700">
           @if (darkMode()) { ☀️ } @else { 🌙 }
         </button>
-
         @if (user$ | async; as user) {
           <img [src]="user.photoURL" class="w-8 h-8 rounded-full border border-gray-300">
-          <button (click)="logout()" class="text-xs text-red-500 hover:underline">Sortir</button>
+          <button (click)="logout()" class="text-xs text-red-500 hover:underline ml-2">Sortir</button>
         }
       </div>
     </div>
 
     @if (user$ | async) {
-      
+      <div class="flex justify-between items-center mb-4 gap-2">
+        <button (click)="ouvrirModalNouvelleListe()" class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200">+ Créer une liste</button>
+        @if (listeActive() && !listeActive()?.estParDefaut) {
+          <button (click)="supprimerListeActive()" class="text-xs text-red-400 hover:text-red-600">Supprimer la liste</button>
+        }
+      </div>
+
       <div class="flex flex-col gap-3 mb-6">
-        
         <div class="flex gap-2">
-          <textarea #champSaisie 
-                    placeholder="Nouvelle tâche..."
-                    rows="1"
-                    class="flex-1 bg-white border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden transition-all min-h-[42px]"
+          <textarea #champSaisie placeholder="Nouvelle tâche..." rows="1"
+                    class="flex-1 bg-white border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-4 py-2 resize-none overflow-hidden min-h-[42px] focus:ring-2 focus:ring-blue-500 outline-none"
                     (input)="champSaisie.style.height = 'auto'; champSaisie.style.height = champSaisie.scrollHeight + 'px'"
                     (keydown.enter)="gererEntree($event, champSaisie)"></textarea>
           <button (click)="ajouterTache(champSaisie.value); champSaisie.value = ''; champSaisie.style.height = 'auto'"
-                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg self-start h-[42px]">
-            +
-          </button>
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg self-start h-[42px]">+</button>
         </div>
-
         <div class="flex justify-end">
            <button (click)="basculerTri()" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 flex items-center gap-1">
-             <span class="text-xs uppercase font-bold tracking-wider">Trier : {{ ordreTri() === 'recent' ? 'Plus récents' : 'Plus anciens' }}</span>
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" [class.rotate-180]="ordreTri() === 'ancien'">
-               <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" />
-             </svg>
+             <span class="text-xs uppercase font-bold tracking-wider">Trier par : {{ ordreTri() === 'recent' ? 'Récent' : 'Ancien' }}</span>
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" [class.rotate-180]="ordreTri() === 'ancien'"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>
            </button>
         </div>
       </div>
 
       @if (chargement()) {
-        <div class="flex justify-center py-10">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      } 
-      @else {
+        <div class="flex justify-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+      } @else {
         <div class="space-y-3">
           @for (t of taches(); track t.id) {
-            <app-tache 
-              [tache]="t" 
-              (supprimer)="supprimerTache(t)" 
-              (toggle)="basculerTache(t)"
-              (modifier)="modifierTache(t, $event)"> <!-- Ajoute cette ligne -->
+            <!-- BRANCHEMENT DE LA PRIORITÉ ICI 👇 -->
+            <app-tache [tache]="t" 
+                       (supprimer)="supprimerTache(t)" 
+                       (toggle)="basculerTache(t)" 
+                       (modifier)="modifierTache(t, $event)"
+                       (priorite)="basculerPriorite(t)"> 
             </app-tache>
           } @empty {
-            <p class="text-center text-gray-400 mt-10 italic">Aucune tâche pour le moment.</p>
+            <div class="text-center py-10 border-2 border-dashed border-blue-100 dark:border-slate-700 rounded-xl">
+               <p class="text-blue-300 dark:text-slate-500 italic">Aucune tâche dans "{{ listeActive()?.nom }}".</p>
+            </div>
           }
         </div>
       }
 
+      <div class="mt-8 pt-4 border-t border-dashed border-blue-200 dark:border-slate-700">
+        <p class="text-[10px] font-bold text-blue-400 uppercase mb-2 text-center">🛠️ Simulateur (Dev Mode)</p>
+        <div class="flex justify-between gap-1">
+          @for (j of joursSemaine; track j.id) {
+            <button (click)="simulerTemps(j.id)" class="flex-1 text-[9px] py-1 bg-white dark:bg-slate-900 border border-blue-100 dark:border-slate-700 rounded hover:bg-blue-500 hover:text-white transition">{{ j.nom }}</button>
+          }
+        </div>
+      </div>
     } @else {
       <div class="text-center py-10">
-        <p class="text-gray-500 dark:text-gray-300 mb-4">Connecte-toi pour gérer tes tâches.</p>
-        <button (click)="login()" 
-                class="bg-white dark:bg-slate-700 dark:text-white border border-gray-300 dark:border-slate-600 font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-slate-600 flex items-center justify-center gap-2 w-full transition">
-          Continuer avec Google
-        </button>
+        <button (click)="login()" class="bg-white dark:bg-slate-700 dark:text-white border border-gray-300 dark:border-slate-600 font-bold py-2 px-4 rounded-lg w-full">Continuer avec Google</button>
       </div>
     }
-
   </div>
 </div>
+
+<!-- MODAL -->
+@if (showModal()) {
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-blue-100 dark:border-slate-700">
+      <h3 class="text-xl font-bold mb-4 text-blue-900 dark:text-white">{{ modeEditionListe() ? 'Modifier la liste' : 'Nouvelle Liste' }}</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase">Nom</label>
+          <input [(ngModel)]="nouveauNomListe" class="w-full border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase">Type</label>
+          <select [(ngModel)]="nouveauTypeListe" [disabled]="modeEditionListe()" class="w-full border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 outline-none disabled:opacity-50">
+            <option value="standard">Standard</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly (1 jour)</option>
+            <option value="custom">Custom (Plusieurs)</option>
+          </select>
+        </div>
+        @if (nouveauTypeListe() === 'weekly' || nouveauTypeListe() === 'custom') {
+          <div>
+            <label class="text-[10px] font-bold text-gray-400 uppercase block mb-2">Jours ({{ nouveauTypeListe() === 'weekly' ? 'choisir 1' : '1 ou +' }})</label>
+            <div class="flex flex-wrap gap-2">
+              @for (j of joursSemaine; track j.id) {
+                <button (click)="toggleJour(j.id)" [class]="joursSelectionnes().includes(j.id) ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400'" class="text-xs px-2 py-1 rounded-md transition">{{ j.nom }}</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button (click)="showModal.set(false)" class="flex-1 py-2 text-gray-500 font-semibold">Annuler</button>
+        <button (click)="validerActionListe()" [disabled]="!formulaireListeValide()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-300">
+          {{ modeEditionListe() ? 'Enregistrer' : 'Créer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

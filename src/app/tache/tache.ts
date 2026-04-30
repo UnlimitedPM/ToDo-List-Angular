@@ -1,4 +1,4 @@
-import { Component, input, output, signal, ViewChild, ElementRef } from '@angular/core'; // Ajout de ViewChild et ElementRef
+import { Component, input, output, signal, ViewChild, ElementRef } from '@angular/core';
 import { Todo } from '../todo';
 import { DatePipe } from '@angular/common'; 
 
@@ -12,31 +12,43 @@ export class TacheComponent {
   supprimer = output<void>();
   toggle = output<void>();
   modifier = output<string>();
+  priorite = output<void>(); // 👈 Le canal d'émission
 
   estEnEdition = signal(false);
+  private clickTimer: any = null;
 
-  // 👇 CETTE FONCTION S'EXÉCUTE DÈS QUE LE TEXTAREA APPARAÎT
   @ViewChild('inputEdit') set inputRef(element: ElementRef<HTMLTextAreaElement>) {
     if (element) {
       const el = element.nativeElement;
-      el.focus(); // 1. On met le focus automatiquement
-      // 2. On ajuste la hauteur immédiatement selon le contenu
+      el.focus();
       el.style.height = 'auto';
       el.style.height = el.scrollHeight + 'px';
     }
   }
 
-  activerEdition() {
-    if (!this.tache().estTerminee) {
-      this.estEnEdition.set(true);
+  gererClick() {
+    if (this.clickTimer) return;
+    this.clickTimer = setTimeout(() => {
+      this.onToggle();
+      this.clickTimer = null;
+    }, 175); // 🕒 Ton réglage favori
+  }
+
+  gererDblClick() {
+    if (this.clickTimer) {
+      clearTimeout(this.clickTimer);
+      this.clickTimer = null;
     }
+    this.activerEdition();
+  }
+
+  activerEdition() {
+    if (this.tache().estTerminee) return;
+    this.estEnEdition.set(true);
   }
 
   validerEdition(nouveauNom: string) {
-    // On ne valide que si le nom a vraiment changé et n'est pas vide
-    if (nouveauNom.trim() && nouveauNom !== this.tache().nom) {
-      this.modifier.emit(nouveauNom);
-    }
+    if (nouveauNom.trim() && nouveauNom !== this.tache().nom) this.modifier.emit(nouveauNom);
     this.estEnEdition.set(false);
   }
 
@@ -47,6 +59,7 @@ export class TacheComponent {
     }
   }
 
+  onPriorite() { this.priorite.emit(); } // 🌟 On envoie le signal
   onSupprimer() { this.supprimer.emit(); }
   onToggle() { this.toggle.emit(); }
 }
